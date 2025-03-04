@@ -2,16 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Slider } from "@/components/ui/slider"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ColorPicker } from "@/components/color-picker"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import { SignInForm } from "@/components/sign-in-form"
 import { UserHeader } from "@/components/user-header"
 import { useUser } from "@/contexts/user-context"
 import { getPlantedFlowers, plantFlower, loadFlowers, type PlantedFlower } from "@/lib/flower-storage"
+import { Flower, FlowerIcon as Garden, Shuffle, PlusCircle } from "lucide-react"
 import dynamic from "next/dynamic"
 
 // Dynamically import the FlowerScene component with no SSR
@@ -40,6 +37,7 @@ export default function Home() {
   const [isPlanted, setIsPlanted] = useState(false)
   const [plantedFlowers, setPlantedFlowers] = useState<PlantedFlower[]>([])
   const [isClient, setIsClient] = useState(false)
+  const [focusedFlowerPosition, setFocusedFlowerPosition] = useState<[number, number, number] | null>(null)
 
   // Set isClient to true once component mounts
   useEffect(() => {
@@ -53,6 +51,13 @@ export default function Home() {
       setPlantedFlowers(getPlantedFlowers())
     }
   }, [isClient])
+
+  // Reset focused flower when switching to single flower view
+  useEffect(() => {
+    if (!isPlanted) {
+      setFocusedFlowerPosition(null)
+    }
+  }, [isPlanted])
 
   const generateNewFlower = () => {
     // Randomize all flower parameters
@@ -85,6 +90,7 @@ export default function Home() {
     // Generate a random position within the field
     const x = Math.random() * 20 - 10 // -10 to 10
     const z = Math.random() * 20 - 10 // -10 to 10
+    const position: [number, number, number] = [x, 0, z]
 
     // Plant the flower
     const newFlower = plantFlower({
@@ -97,17 +103,24 @@ export default function Home() {
       centerColor,
       stemColor,
       seed,
-      position: [x, 0, z],
+      position,
     })
 
     // Update the local state
     setPlantedFlowers([...plantedFlowers, newFlower])
+
+    // Set the focused flower position
+    setFocusedFlowerPosition(position)
 
     // Switch to planted view
     setIsPlanted(true)
 
     // Generate a new flower for next time
     generateNewFlower()
+  }
+
+  const toggleView = () => {
+    setIsPlanted(!isPlanted)
   }
 
   if (!isAuthenticated) {
@@ -122,7 +135,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col">
       <UserHeader />
       <div className="flex flex-col lg:flex-row flex-1">
-        <div className="w-full lg:w-3/4 h-[60vh] lg:h-[calc(100vh-56px)]">
+        <div className="w-full lg:w-3/4 h-[60vh] lg:h-[calc(100vh-56px)] relative">
           {isClient && (
             <DynamicFlowerScene
               petalCount={petalCount}
@@ -135,110 +148,136 @@ export default function Home() {
               seed={seed}
               isPlanted={isPlanted}
               plantedFlowers={plantedFlowers}
+              focusedFlowerPosition={focusedFlowerPosition}
             />
           )}
+
+          {/* Floating view toggle */}
+          <button
+            onClick={toggleView}
+            className="absolute top-4 right-4 bg-white/80 dark:bg-gray-800/80 p-2 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+            aria-label={isPlanted ? "Switch to flower creation view" : "Switch to garden view"}
+          >
+            {isPlanted ? (
+              <>
+                <Flower className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium">Edit Flower</span>
+              </>
+            ) : (
+              <>
+                <Garden className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium">View Garden</span>
+              </>
+            )}
+          </button>
+
+          {/* Floating action buttons */}
+          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-4">
+            {!isPlanted && (
+              <>
+                <button
+                  onClick={generateNewFlower}
+                  className="bg-white/80 dark:bg-gray-800/80 p-3 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+                  aria-label="Generate random flower"
+                >
+                  <Shuffle className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium">Random</span>
+                </button>
+
+                <button
+                  onClick={handlePlantFlower}
+                  className="bg-primary/90 hover:bg-primary text-white p-3 px-4 rounded-full shadow-md transition-colors flex items-center gap-2"
+                  aria-label="Plant this flower in the garden"
+                >
+                  <PlusCircle className="h-5 w-5" />
+                  <span className="text-sm font-medium">Plant Flower</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="w-full lg:w-1/4 p-4 bg-gray-50 dark:bg-gray-900 overflow-y-auto">
-          <Card>
-            <CardHeader>
+        <div className="w-full lg:w-1/4 p-4 bg-gray-50 dark:bg-gray-900 h-[calc(100vh-56px)] flex flex-col">
+          <Card className="flex-1 flex flex-col">
+            <CardHeader className="flex-shrink-0">
               <CardTitle>Flower Generator</CardTitle>
               <CardDescription>Customize your 3D flower</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="shape">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="shape">Shape</TabsTrigger>
-                  <TabsTrigger value="colors">Colors</TabsTrigger>
-                  <TabsTrigger value="generate">Generate</TabsTrigger>
-                </TabsList>
+            <CardContent className="overflow-y-auto flex-1">
+              <div className="space-y-6">
+                {/* Shape Section */}
+                <div>
+                  <h3 className="text-lg font-medium mb-3">Shape</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Petal Count: {petalCount}</label>
+                      <Slider
+                        min={3}
+                        max={20}
+                        step={1}
+                        value={[petalCount]}
+                        onValueChange={(value) => setPetalCount(value[0])}
+                      />
+                    </div>
 
-                <TabsContent value="shape" className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Petal Count: {petalCount}</label>
-                    <Slider
-                      min={3}
-                      max={20}
-                      step={1}
-                      value={[petalCount]}
-                      onValueChange={(value) => setPetalCount(value[0])}
-                    />
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Petal Length: {petalLength.toFixed(1)}</label>
+                      <Slider
+                        min={0.5}
+                        max={2}
+                        step={0.1}
+                        value={[petalLength]}
+                        onValueChange={(value) => setPetalLength(value[0])}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Petal Width: {petalWidth.toFixed(1)}</label>
+                      <Slider
+                        min={0.1}
+                        max={1}
+                        step={0.1}
+                        value={[petalWidth]}
+                        onValueChange={(value) => setPetalWidth(value[0])}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Stem Height: {stemHeight.toFixed(1)}</label>
+                      <Slider
+                        min={1}
+                        max={5}
+                        step={0.1}
+                        value={[stemHeight]}
+                        onValueChange={(value) => setStemHeight(value[0])}
+                      />
+                    </div>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Petal Length: {petalLength.toFixed(1)}</label>
-                    <Slider
-                      min={0.5}
-                      max={2}
-                      step={0.1}
-                      value={[petalLength]}
-                      onValueChange={(value) => setPetalLength(value[0])}
-                    />
+                <div className="border-t my-4"></div>
+
+                {/* Colors Section */}
+                <div>
+                  <h3 className="text-lg font-medium mb-3">Colors</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Petal Color</label>
+                      <ColorPicker color={petalColor} onChange={setPetalColor} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Center Color</label>
+                      <ColorPicker color={centerColor} onChange={setCenterColor} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Stem Color</label>
+                      <ColorPicker color={stemColor} onChange={setStemColor} />
+                    </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Petal Width: {petalWidth.toFixed(1)}</label>
-                    <Slider
-                      min={0.1}
-                      max={1}
-                      step={0.1}
-                      value={[petalWidth]}
-                      onValueChange={(value) => setPetalWidth(value[0])}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Stem Height: {stemHeight.toFixed(1)}</label>
-                    <Slider
-                      min={1}
-                      max={5}
-                      step={0.1}
-                      value={[stemHeight]}
-                      onValueChange={(value) => setStemHeight(value[0])}
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2 pt-2">
-                    <Switch id="planted-mode" checked={isPlanted} onCheckedChange={setIsPlanted} />
-                    <Label htmlFor="planted-mode">View community garden</Label>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="colors" className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Petal Color</label>
-                    <ColorPicker color={petalColor} onChange={setPetalColor} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Center Color</label>
-                    <ColorPicker color={centerColor} onChange={setCenterColor} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Stem Color</label>
-                    <ColorPicker color={stemColor} onChange={setStemColor} />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="generate" className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Generate a completely new random flower with different colors, shapes, and sizes.
-                  </p>
-                  <Button onClick={generateNewFlower} className="w-full mb-4">
-                    Generate Random Flower
-                  </Button>
-
-                  <div className="border-t pt-4">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Plant your flower in the garden for others to see.
-                    </p>
-                    <Button onClick={handlePlantFlower} className="w-full">
-                      Plant This Flower
-                    </Button>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
