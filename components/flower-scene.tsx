@@ -33,6 +33,22 @@ function Field({ plantedFlowers = [], size = 30 }: FieldProps & { size?: number 
         <meshStandardMaterial color="#5d9e5f" roughness={0.8} />
       </mesh>
 
+      {/* Add some random flowers in the background */}
+      {Array.from({ length: 15 }).map((_, i) => {
+        const x = Math.random() * size - size / 2
+        const z = Math.random() * size - size / 2
+        // Don't place flowers too close to the center
+        if (Math.abs(x) < 3 && Math.abs(z) < 3) return null
+
+        const scale = 0.3 + Math.random() * 0.4
+        return (
+          <mesh key={i} position={[x, 0, z]} scale={[scale, scale, scale]}>
+            <sphereGeometry args={[0.3, 8, 8]} />
+            <meshStandardMaterial color={`hsl(${Math.random() * 360}, 70%, 60%)`} roughness={0.7} />
+          </mesh>
+        )
+      })}
+
       {/* Planted flowers */}
       {plantedFlowers.map((flower) => (
         <PlantedFlowerWithLabel key={flower.id} {...flower} position={flower.position} username={flower.username} />
@@ -93,9 +109,9 @@ function Flower({
       turbulence: random(0.1, 0.3, 27),
       direction: random(0, Math.PI * 2, 99),
     }
-  }, [seed, random]) // Added seed and random to dependencies
+  }, [seed]) // Removed random from dependencies
 
-  // Create petals\
+  // Create petals
   const petals = useMemo(() => {
     const items = []
     for (let i = 0; i < petalCount; i++) {
@@ -115,7 +131,7 @@ function Flower({
       )
     }
     return items
-  }, [petalCount, petalLength, petalWidth, petalColor, seed, random]) // Added random to dependencies
+  }, [petalCount, petalLength, petalWidth, petalColor, seed]) // Removed random from dependencies
 
   // Animate the flower with wind effect
   useFrame((state) => {
