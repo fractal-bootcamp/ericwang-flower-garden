@@ -93,9 +93,9 @@ function Flower({
       turbulence: random(0.1, 0.3, 27),
       direction: random(0, Math.PI * 2, 99),
     }
-  }, [])
+  }, [seed, random]) // Added seed and random to dependencies
 
-  // Create petals
+  // Create petals\
   const petals = useMemo(() => {
     const items = []
     for (let i = 0; i < petalCount; i++) {
@@ -115,7 +115,7 @@ function Flower({
       )
     }
     return items
-  }, [petalCount, petalLength, petalWidth, petalColor, seed])
+  }, [petalCount, petalLength, petalWidth, petalColor, seed, random]) // Added random to dependencies
 
   // Animate the flower with wind effect
   useFrame((state) => {
@@ -150,7 +150,7 @@ function Flower({
   })
 
   return (
-    <group position={[0, isPlanted ? -0.5 : stemHeight / 2, 0]}>
+    <group position={[0, isPlanted ? 0 : 0, 0]}>
       <group ref={stemGroup}>
         {/* Stem */}
         <mesh position={[0, stemHeight / 2, 0]} rotation={[0, 0, 0]}>
@@ -189,13 +189,14 @@ function SceneSetup({ isPlanted }: { isPlanted: boolean }) {
 
   useEffect(() => {
     if (isPlanted) {
-      // When planted, position camera to view the flower from a lower angle
-      camera.position.set(5, 4, 5)
+      // When planted, position camera to view the garden from a higher angle
+      camera.position.set(5, 5, 5)
     } else {
-      // When floating, position camera to view the flower from all sides
-      camera.position.set(0, 5, 8)
+      // When viewing a single flower, position camera to view it directly
+      camera.position.set(0, 3, 6)
     }
-    camera.lookAt(0, isPlanted ? 2.5 : 2, 0)
+    // Always look at the center point
+    camera.lookAt(0, isPlanted ? 1 : 2, 0)
   }, [isPlanted, camera])
 
   return null
@@ -209,7 +210,7 @@ export function FlowerScene(props: FlowerSceneProps) {
   const { isPlanted = false, plantedFlowers = [] } = props
 
   return (
-    <Canvas shadows camera={{ position: [0, 5, 8], fov: 50 }} className="bg-gradient-to-b from-blue-100 to-blue-200">
+    <Canvas shadows camera={{ position: [0, 3, 6], fov: 50 }} className="bg-gradient-to-b from-blue-100 to-blue-200">
       <SceneSetup isPlanted={isPlanted} />
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} intensity={1} castShadow />
@@ -233,6 +234,7 @@ export function FlowerScene(props: FlowerSceneProps) {
         maxDistance={isPlanted ? 30 : 15}
         minPolarAngle={isPlanted ? 0.1 : 0}
         maxPolarAngle={isPlanted ? Math.PI / 2 - 0.1 : Math.PI}
+        target={[0, isPlanted ? 1 : 2, 0]} // Set the target to match the lookAt point
       />
     </Canvas>
   )
