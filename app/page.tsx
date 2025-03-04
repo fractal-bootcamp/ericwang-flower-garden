@@ -8,7 +8,8 @@ import { SignInForm } from "@/components/sign-in-form"
 import { UserHeader } from "@/components/user-header"
 import { useUser } from "@/contexts/user-context"
 import { getPlantedFlowers, plantFlower, loadFlowers, type PlantedFlower } from "@/lib/flower-storage"
-import { Flower, FlowerIcon as Garden, Shuffle, PlusCircle } from "lucide-react"
+import { Shuffle, PlusCircle, PencilIcon, X } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import dynamic from "next/dynamic"
 
 // Dynamically import the FlowerScene component with no SSR
@@ -38,6 +39,7 @@ export default function Home() {
   const [plantedFlowers, setPlantedFlowers] = useState<PlantedFlower[]>([])
   const [isClient, setIsClient] = useState(false)
   const [focusedFlowerPosition, setFocusedFlowerPosition] = useState<[number, number, number] | null>(null)
+  const [controlsVisible, setControlsVisible] = useState(false) // Default to closed
 
   // Set isClient to true once component mounts
   useEffect(() => {
@@ -121,6 +123,14 @@ export default function Home() {
 
   const toggleView = () => {
     setIsPlanted(!isPlanted)
+    // Hide controls when switching to garden view
+    if (!isPlanted) {
+      setControlsVisible(false)
+    }
+  }
+
+  const toggleControls = () => {
+    setControlsVisible(!controlsVisible)
   }
 
   if (!isAuthenticated) {
@@ -134,8 +144,9 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col">
       <UserHeader />
-      <div className="flex flex-col lg:flex-row flex-1">
-        <div className="w-full lg:w-3/4 h-[60vh] lg:h-[calc(100vh-56px)] relative">
+      <div className="relative flex-1">
+        {/* Full-width canvas */}
+        <div className="w-full h-[calc(100vh-56px)]">
           {isClient && (
             <DynamicFlowerScene
               petalCount={petalCount}
@@ -151,135 +162,145 @@ export default function Home() {
               focusedFlowerPosition={focusedFlowerPosition}
             />
           )}
-
-          {/* Floating view toggle */}
-          <button
-            onClick={toggleView}
-            className="absolute top-4 right-4 bg-white/80 dark:bg-gray-800/80 p-2 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
-            aria-label={isPlanted ? "Switch to flower creation view" : "Switch to garden view"}
-          >
-            {isPlanted ? (
-              <>
-                <Flower className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium">Edit Flower</span>
-              </>
-            ) : (
-              <>
-                <Garden className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium">View Garden</span>
-              </>
-            )}
-          </button>
-
-          {/* Floating action buttons */}
-          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-4">
-            {!isPlanted && (
-              <>
-                <button
-                  onClick={generateNewFlower}
-                  className="bg-white/80 dark:bg-gray-800/80 p-3 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
-                  aria-label="Generate random flower"
-                >
-                  <Shuffle className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium">Random</span>
-                </button>
-
-                <button
-                  onClick={handlePlantFlower}
-                  className="bg-primary/90 hover:bg-primary text-white p-3 px-4 rounded-full shadow-md transition-colors flex items-center gap-2"
-                  aria-label="Plant this flower in the garden"
-                >
-                  <PlusCircle className="h-5 w-5" />
-                  <span className="text-sm font-medium">Plant Flower</span>
-                </button>
-              </>
-            )}
-          </div>
         </div>
 
-        <div className="w-full lg:w-1/4 p-4 bg-gray-50 dark:bg-gray-900 h-[calc(100vh-56px)] flex flex-col">
-          <Card className="flex-1 flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle>Flower Generator</CardTitle>
-              <CardDescription>Customize your 3D flower</CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-y-auto flex-1">
-              <div className="space-y-6">
-                {/* Shape Section */}
-                <div>
-                  <h3 className="text-lg font-medium mb-3">Shape</h3>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Petal Count: {petalCount}</label>
-                      <Slider
-                        min={3}
-                        max={20}
-                        step={1}
-                        value={[petalCount]}
-                        onValueChange={(value) => setPetalCount(value[0])}
-                      />
-                    </div>
+        {/* View toggle switch */}
+        <div className="absolute top-4 left-4 bg-white/80 dark:bg-gray-800/80 p-2 px-3 rounded-full shadow-md flex items-center gap-3">
+          <Switch checked={isPlanted} onCheckedChange={toggleView} aria-label="Toggle view" />
+          <span className="text-sm font-medium whitespace-nowrap">
+            {isPlanted ? "Community Garden" : "Flower Editor"}
+          </span>
+        </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Petal Length: {petalLength.toFixed(1)}</label>
-                      <Slider
-                        min={0.5}
-                        max={2}
-                        step={0.1}
-                        value={[petalLength]}
-                        onValueChange={(value) => setPetalLength(value[0])}
-                      />
-                    </div>
+        {/* Show controls button (only visible when controls are hidden and in flower editor mode) */}
+        {!controlsVisible && !isPlanted && (
+          <button
+            onClick={toggleControls}
+            className="absolute top-4 right-4 bg-white/80 dark:bg-gray-800/80 p-2 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors"
+            aria-label="Show controls"
+          >
+            <PencilIcon className="h-5 w-5 text-primary" />
+          </button>
+        )}
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Petal Width: {petalWidth.toFixed(1)}</label>
-                      <Slider
-                        min={0.1}
-                        max={1}
-                        step={0.1}
-                        value={[petalWidth]}
-                        onValueChange={(value) => setPetalWidth(value[0])}
-                      />
-                    </div>
+        {/* Floating control panel */}
+        {controlsVisible && !isPlanted && (
+          <div className="absolute top-4 right-4 w-full max-w-xs md:max-w-sm transition-all duration-300 ease-in-out">
+            <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg border border-white/20 dark:border-gray-700/30">
+              <CardHeader className="pb-2 relative">
+                <button
+                  onClick={toggleControls}
+                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors"
+                  aria-label="Hide controls"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <CardTitle>Flower Generator</CardTitle>
+                <CardDescription>Customize your 3D flower</CardDescription>
+              </CardHeader>
+              <CardContent className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                <div className="space-y-6">
+                  {/* Shape Section */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-3">Shape</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Petal Count: {petalCount}</label>
+                        <Slider
+                          min={3}
+                          max={20}
+                          step={1}
+                          value={[petalCount]}
+                          onValueChange={(value) => setPetalCount(value[0])}
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Stem Height: {stemHeight.toFixed(1)}</label>
-                      <Slider
-                        min={1}
-                        max={5}
-                        step={0.1}
-                        value={[stemHeight]}
-                        onValueChange={(value) => setStemHeight(value[0])}
-                      />
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Petal Length: {petalLength.toFixed(1)}</label>
+                        <Slider
+                          min={0.5}
+                          max={2}
+                          step={0.1}
+                          value={[petalLength]}
+                          onValueChange={(value) => setPetalLength(value[0])}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Petal Width: {petalWidth.toFixed(1)}</label>
+                        <Slider
+                          min={0.1}
+                          max={1}
+                          step={0.1}
+                          value={[petalWidth]}
+                          onValueChange={(value) => setPetalWidth(value[0])}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Stem Height: {stemHeight.toFixed(1)}</label>
+                        <Slider
+                          min={1}
+                          max={5}
+                          step={0.1}
+                          value={[stemHeight]}
+                          onValueChange={(value) => setStemHeight(value[0])}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-4"></div>
+
+                  {/* Colors Section */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-3">Colors</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Petal Color</label>
+                        <ColorPicker color={petalColor} onChange={setPetalColor} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Center Color</label>
+                        <ColorPicker color={centerColor} onChange={setCenterColor} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Stem Color</label>
+                        <ColorPicker color={stemColor} onChange={setStemColor} />
+                      </div>
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-                <div className="border-t my-4"></div>
+        {/* Floating action buttons */}
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-4">
+          {!isPlanted && (
+            <>
+              <button
+                onClick={generateNewFlower}
+                className="bg-white/80 dark:bg-gray-800/80 p-3 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+                aria-label="Generate random flower"
+              >
+                <Shuffle className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium whitespace-nowrap">Random</span>
+              </button>
 
-                {/* Colors Section */}
-                <div>
-                  <h3 className="text-lg font-medium mb-3">Colors</h3>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Petal Color</label>
-                      <ColorPicker color={petalColor} onChange={setPetalColor} />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Center Color</label>
-                      <ColorPicker color={centerColor} onChange={setCenterColor} />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Stem Color</label>
-                      <ColorPicker color={stemColor} onChange={setStemColor} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              <button
+                onClick={handlePlantFlower}
+                className="bg-primary/90 hover:bg-primary text-white p-3 px-4 rounded-full shadow-md transition-colors flex items-center gap-2"
+                aria-label="Plant this flower in the garden"
+              >
+                <PlusCircle className="h-5 w-5" />
+                <span className="text-sm font-medium whitespace-nowrap">Plant Flower</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
     </main>
