@@ -40,6 +40,7 @@ export default function Home() {
   const [isPlanted, setIsPlanted] = useState(false)
   const [plantedFlowers, setPlantedFlowers] = useState<PlantedFlower[]>([])
   const [isClient, setIsClient] = useState(false)
+  const [focusedFlowerPosition, setFocusedFlowerPosition] = useState<[number, number, number] | null>(null)
 
   // Set isClient to true once component mounts
   useEffect(() => {
@@ -53,6 +54,13 @@ export default function Home() {
       setPlantedFlowers(getPlantedFlowers())
     }
   }, [isClient])
+
+  // Reset focused flower when switching to single flower view
+  useEffect(() => {
+    if (!isPlanted) {
+      setFocusedFlowerPosition(null)
+    }
+  }, [isPlanted])
 
   const generateNewFlower = () => {
     // Randomize all flower parameters
@@ -85,6 +93,7 @@ export default function Home() {
     // Generate a random position within the field
     const x = Math.random() * 20 - 10 // -10 to 10
     const z = Math.random() * 20 - 10 // -10 to 10
+    const position: [number, number, number] = [x, 0, z]
 
     // Plant the flower
     const newFlower = plantFlower({
@@ -97,11 +106,14 @@ export default function Home() {
       centerColor,
       stemColor,
       seed,
-      position: [x, 0, z],
+      position,
     })
 
     // Update the local state
     setPlantedFlowers([...plantedFlowers, newFlower])
+
+    // Set the focused flower position
+    setFocusedFlowerPosition(position)
 
     // Switch to planted view
     setIsPlanted(true)
@@ -135,6 +147,7 @@ export default function Home() {
               seed={seed}
               isPlanted={isPlanted}
               plantedFlowers={plantedFlowers}
+              focusedFlowerPosition={focusedFlowerPosition}
             />
           )}
         </div>
