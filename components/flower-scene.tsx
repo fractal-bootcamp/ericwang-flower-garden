@@ -109,7 +109,7 @@ function Flower({
       turbulence: random(0.1, 0.3, 27),
       direction: random(0, Math.PI * 2, 99),
     }
-  }, [seed]) // Removed random from dependencies
+  }, [seed, random]) // Updated dependency
 
   // Create petals
   const petals = useMemo(() => {
@@ -131,7 +131,7 @@ function Flower({
       )
     }
     return items
-  }, [petalCount, petalLength, petalWidth, petalColor, seed]) // Removed random from dependencies
+  }, [petalCount, petalLength, petalWidth, petalColor, seed, random]) // Updated dependency
 
   // Animate the flower with wind effect
   useFrame((state) => {
@@ -200,34 +200,76 @@ function Flower({
   )
 }
 
-function SceneSetup({ isPlanted }: { isPlanted: boolean }) {
+function CameraController({
+  isPlanted,
+  focusedFlowerPosition,
+}: {
+  isPlanted: boolean
+  focusedFlowerPosition?: [number, number, number] | null
+}) {
   const { camera } = useThree()
+  const controlsRef = useRef<any>(null)
 
   useEffect(() => {
     if (isPlanted) {
-      // When planted, position camera to view the garden from a higher angle
-      camera.position.set(5, 5, 5)
+      if (focusedFlowerPosition) {
+        // When a flower is just planted, position camera to view that specific flower
+        const [x, y, z] = focusedFlowerPosition
+
+        // Position the camera at an angle to the flower
+        camera.position.set(x + 5, 5, z + 5)
+
+        // Look at the flower
+        camera.lookAt(x, y + 1, z)
+
+        // Update the orbit controls target
+        if (controlsRef.current) {
+          controlsRef.current.target.set(x, y + 1, z)
+        }
+      } else {
+        // Default garden view
+        camera.position.set(5, 5, 5)
+        camera.lookAt(0, 1, 0)
+
+        if (controlsRef.current) {
+          controlsRef.current.target.set(0, 1, 0)
+        }
+      }
     } else {
       // When viewing a single flower, position camera to view it directly
       camera.position.set(0, 3, 6)
-    }
-    // Always look at the center point
-    camera.lookAt(0, isPlanted ? 1 : 2, 0)
-  }, [isPlanted, camera])
+      camera.lookAt(0, 2, 0)
 
-  return null
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, 2, 0)
+      }
+    }
+  }, [isPlanted, camera, focusedFlowerPosition])
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enablePan={true}
+      enableZoom={true}
+      enableRotate={true}
+      minDistance={2}
+      maxDistance={isPlanted ? 30 : 15}
+      minPolarAngle={isPlanted ? 0.1 : 0}
+      maxPolarAngle={isPlanted ? Math.PI / 2 - 0.1 : Math.PI}
+    />
+  )
 }
 
 interface FlowerSceneProps extends FlowerProps {
   plantedFlowers?: PlantedFlower[]
+  focusedFlowerPosition?: [number, number, number] | null
 }
 
 export function FlowerScene(props: FlowerSceneProps) {
-  const { isPlanted = false, plantedFlowers = [] } = props
+  const { isPlanted = false, plantedFlowers = [], focusedFlowerPosition = null } = props
 
   return (
     <Canvas shadows camera={{ position: [0, 3, 6], fov: 50 }} className="bg-gradient-to-b from-blue-100 to-blue-200">
-      <SceneSetup isPlanted={isPlanted} />
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} intensity={1} castShadow />
       <directionalLight
@@ -242,19 +284,9 @@ export function FlowerScene(props: FlowerSceneProps) {
       {!isPlanted && <Flower {...props} />}
 
       <Environment preset={isPlanted ? "park" : "city"} />
-      <OrbitControls
-        enablePan={true}
-        enableZoom={true}
-        enableRotate={true}
-        minDistance={2}
-        maxDistance={isPlanted ? 30 : 15}
-        minPolarAngle={isPlanted ? 0.1 : 0}
-        maxPolarAngle={isPlanted ? Math.PI / 2 - 0.1 : Math.PI}
-        target={[0, isPlanted ? 1 : 2, 0]} // Set the target to match the lookAt point
-      />
+      <CameraController isPlanted={isPlanted} focusedFlowerPosition={focusedFlowerPosition} />
     </Canvas>
   )
 }
 
 export default FlowerScene
-
