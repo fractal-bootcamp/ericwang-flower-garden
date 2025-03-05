@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { OrbitControls, Environment, Html } from "@react-three/drei"
 import * as THREE from "three"
 import type { PlantedFlower } from "@/lib/flower-storage"
+import { WaterDroplets } from "./water-droplets"
 
 interface FlowerProps {
   petalCount: number
@@ -18,6 +19,7 @@ interface FlowerProps {
   isPlanted?: boolean
   username?: string
   position?: [number, number, number]
+  lastWatered?: number
 }
 
 interface FieldProps {
@@ -126,7 +128,13 @@ function Field({ plantedFlowers = [], size = 30 }: FieldProps & { size?: number 
 
       {/* Planted flowers */}
       {plantedFlowers.map((flower) => (
-        <PlantedFlowerWithLabel key={flower.id} {...flower} position={flower.position} username={flower.username} />
+        <PlantedFlowerWithLabel
+          key={flower.id}
+          {...flower}
+          position={flower.position}
+          username={flower.username}
+          lastWatered={flower.lastWatered}
+        />
       ))}
     </>
   )
@@ -134,6 +142,8 @@ function Field({ plantedFlowers = [], size = 30 }: FieldProps & { size?: number 
 
 function PlantedFlowerWithLabel(props: FlowerProps) {
   const [hovered, setHovered] = useState(false)
+  const [showWaterAnimation, setShowWaterAnimation] = useState(false)
+  const [lastWateredTime, setLastWateredTime] = useState<number | undefined>(props.lastWatered)
   const groupRef = useRef<THREE.Group>(null)
 
   // Calculate position with adjusted height for tall flowers
@@ -148,6 +158,14 @@ function PlantedFlowerWithLabel(props: FlowerProps) {
     position[1] = -Math.max(0, (props.stemHeight - 4) * 0.15)
   }
 
+  // Check if flower was just watered
+  useEffect(() => {
+    if (props.lastWatered && props.lastWatered !== lastWateredTime) {
+      setLastWateredTime(props.lastWatered)
+      setShowWaterAnimation(true)
+    }
+  }, [props.lastWatered, lastWateredTime])
+
   return (
     <group
       ref={groupRef}
@@ -156,6 +174,13 @@ function PlantedFlowerWithLabel(props: FlowerProps) {
       onPointerOut={() => setHovered(false)}
     >
       <Flower {...props} isPlanted={true} />
+
+      {/* Water droplets animation */}
+      <WaterDroplets
+        active={showWaterAnimation}
+        height={props.stemHeight}
+        onComplete={() => setShowWaterAnimation(false)}
+      />
 
       {/* Username label that appears on hover */}
       {hovered && props.username && (
