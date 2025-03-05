@@ -9,7 +9,6 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "3D Flower Garden",
   description: "Create, customize, and share beautiful 3D flowers",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -25,3 +24,4 @@ export default function RootLayout({
     </html>
   )
 }
+
