@@ -11,9 +11,16 @@ interface UserFlowersSidebarProps {
   onClose: () => void
   plantedFlowers: PlantedFlower[]
   setPlantedFlowers: (flowers: PlantedFlower[]) => void
+  onWaterFlower?: (flowerId: string) => void
 }
 
-export function UserFlowersSidebar({ username, onClose, plantedFlowers, setPlantedFlowers }: UserFlowersSidebarProps) {
+export function UserFlowersSidebar({
+  username,
+  onClose,
+  plantedFlowers,
+  setPlantedFlowers,
+  onWaterFlower,
+}: UserFlowersSidebarProps) {
   const [userFlowers, setUserFlowers] = useState<PlantedFlower[]>([])
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [justWateredId, setJustWateredId] = useState<string | null>(null)
@@ -45,6 +52,13 @@ export function UserFlowersSidebar({ username, onClose, plantedFlowers, setPlant
       // Update both the filtered list and the main list
       setUserFlowers((prev) => prev.map((f) => (f.id === flowerId ? updatedFlower : f)))
       setPlantedFlowers(plantedFlowers.map((f) => (f.id === flowerId ? updatedFlower : f)))
+
+      // Notify parent component about the watered flower
+      if (onWaterFlower) {
+        onWaterFlower(flowerId)
+        // Close the sidebar after watering to show the full view of the watered flower
+        setIsCollapsed(true)
+      }
     }
   }
 
