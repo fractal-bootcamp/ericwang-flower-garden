@@ -52,8 +52,18 @@ export const getPlantedFlowers = (): PlantedFlower[] => {
 
 // Plant a new flower
 export const plantFlower = (flower: Omit<PlantedFlower, "id" | "plantedAt">): PlantedFlower => {
+  // Adjust the y-position based on stem height to prevent tall flowers from getting too close to the top
+  const position: [number, number, number] = [flower.position[0], flower.position[1], flower.position[2]]
+
+  // If the stem is tall, lower the flower position, but with a more subtle adjustment
+  if (flower.stemHeight > 4) {
+    // Only adjust for very tall flowers (> 4)
+    position[1] = -Math.max(0, (flower.stemHeight - 4) * 0.15)
+  }
+
   const newFlower: PlantedFlower = {
     ...flower,
+    position,
     id: Date.now().toString(),
     plantedAt: Date.now(),
   }

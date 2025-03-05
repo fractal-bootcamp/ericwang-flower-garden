@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Slider } from "@/components/ui/slider"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ColorPicker } from "@/components/color-picker"
 import { SignInForm } from "@/components/sign-in-form"
-import { UserHeader } from "@/components/user-header"
 import { useUser } from "@/contexts/user-context"
 import { getPlantedFlowers, plantFlower, loadFlowers, type PlantedFlower } from "@/lib/flower-storage"
-import { Flower, FlowerIcon as Garden, Shuffle, PlusCircle } from "lucide-react"
+import { Shuffle, PlusCircle, LogOut, Flower, ChevronRight, ChevronLeft } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import dynamic from "next/dynamic"
 
 // Dynamically import the FlowerScene component with no SSR
@@ -17,15 +17,19 @@ const DynamicFlowerScene = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-blue-100 to-blue-200">
+      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-blue-100 to-blue-200">
         <p className="text-lg font-medium">Loading 3D scene...</p>
       </div>
     ),
   },
 )
 
+// Sidebar width constants
+const SIDEBAR_WIDTH_MOBILE = 320
+const SIDEBAR_WIDTH_DESKTOP = 384
+
 export default function Home() {
-  const { user, isAuthenticated } = useUser()
+  const { user, isAuthenticated, signOut } = useUser()
   const [petalCount, setPetalCount] = useState(8)
   const [petalLength, setPetalLength] = useState(1)
   const [petalWidth, setPetalWidth] = useState(0.5)
@@ -38,10 +42,29 @@ export default function Home() {
   const [plantedFlowers, setPlantedFlowers] = useState<PlantedFlower[]>([])
   const [isClient, setIsClient] = useState(false)
   const [focusedFlowerPosition, setFocusedFlowerPosition] = useState<[number, number, number] | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeTab, setActiveTab] = useState("shape")
 
-  // Set isClient to true once component mounts
+  // Set isClient to true once component mounts and detect mobile
   useEffect(() => {
     setIsClient(true)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+      // Auto-collapse sidebar on mobile
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false)
+      } else {
+        setSidebarOpen(true)
+      }
+    }
+
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+
+    return () => {
+      window.removeEventListener("resize", checkMobile)
+    }
   }, [])
 
   // Load planted flowers on mount and when authentication changes
@@ -123,91 +146,146 @@ export default function Home() {
     setIsPlanted(!isPlanted)
   }
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen)
+  }
+
+  // Function to get initials from username
+  const getUserInitial = (username: string) => {
+    return username.charAt(0).toUpperCase()
+  }
+
+  // Function to generate a consistent color based on username
+  const getUserColor = (username: string) => {
+    let hash = 0
+    for (let i = 0; i < username.length; i++) {
+      hash = username.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const hue = hash % 360
+    return `hsl(${hue}, 70%, 60%)`
+  }
+
   if (!isAuthenticated) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-100 to-blue-200 p-4">
+      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-blue-100 to-blue-200 p-4">
         <SignInForm />
-      </main>
+      </div>
     )
   }
 
+  // Calculate the sidebar width based on screen size
+  const sidebarWidth = isMobile ? SIDEBAR_WIDTH_MOBILE : SIDEBAR_WIDTH_DESKTOP
+
   return (
-    <main className="flex min-h-screen flex-col">
-      <UserHeader />
-      <div className="flex flex-col lg:flex-row flex-1">
-        <div className="w-full lg:w-3/4 h-[60vh] lg:h-[calc(100vh-56px)] relative">
-          {isClient && (
-            <DynamicFlowerScene
-              petalCount={petalCount}
-              petalLength={petalLength}
-              petalWidth={petalWidth}
-              stemHeight={stemHeight}
-              petalColor={petalColor}
-              centerColor={centerColor}
-              stemColor={stemColor}
-              seed={seed}
-              isPlanted={isPlanted}
-              plantedFlowers={plantedFlowers}
-              focusedFlowerPosition={focusedFlowerPosition}
-            />
-          )}
+    <div className="fixed inset-0">
+      {/* Canvas container with dynamic sizing */}
+      <div
+        className={`absolute ${isPlanted ? "inset-0" : "top-0 bottom-0 left-0"}`}
+        style={{
+          right: isPlanted ? 0 : sidebarOpen ? `${sidebarWidth}px` : 0,
+        }}
+      >
+        {isClient && (
+          <DynamicFlowerScene
+            petalCount={petalCount}
+            petalLength={petalLength}
+            petalWidth={petalWidth}
+            stemHeight={stemHeight}
+            petalColor={petalColor}
+            centerColor={centerColor}
+            stemColor={stemColor}
+            seed={seed}
+            isPlanted={isPlanted}
+            plantedFlowers={plantedFlowers}
+            focusedFlowerPosition={focusedFlowerPosition}
+            sidebarVisible={!isPlanted && sidebarOpen}
+          />
+        )}
+      </div>
 
-          {/* Floating view toggle */}
+      {/* View toggle button */}
+      <div className="absolute top-4 left-4 z-10">
+        <button
+          onClick={toggleView}
+          className={`px-4 py-2 rounded-full shadow-md transition-colors flex items-center gap-2 ${
+            isPlanted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
+          }`}
+          aria-label="Toggle view"
+        >
+          <Flower className="h-5 w-5" />
+          <span className="text-sm font-medium whitespace-nowrap">
+            {isPlanted ? "Community Garden" : "Flower Editor"}
+          </span>
+        </button>
+      </div>
+
+      {/* Sidebar toggle button (only visible on mobile and when not in planted view) */}
+      {isMobile && !isPlanted && (
+        <div className="absolute top-4 right-4 z-20">
           <button
-            onClick={toggleView}
-            className="absolute top-4 right-4 bg-white/80 dark:bg-gray-800/80 p-2 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
-            aria-label={isPlanted ? "Switch to flower creation view" : "Switch to garden view"}
+            onClick={toggleSidebar}
+            className="p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors"
+            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
-            {isPlanted ? (
-              <>
-                <Flower className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium">Edit Flower</span>
-              </>
-            ) : (
-              <>
-                <Garden className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium">View Garden</span>
-              </>
-            )}
+            {sidebarOpen ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
           </button>
+        </div>
+      )}
 
-          {/* Floating action buttons */}
-          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-4">
-            {!isPlanted && (
-              <>
-                <button
-                  onClick={generateNewFlower}
-                  className="bg-white/80 dark:bg-gray-800/80 p-3 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
-                  aria-label="Generate random flower"
-                >
-                  <Shuffle className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium">Random</span>
-                </button>
+      {/* Floating action buttons (only in flower editor mode) - centered in the visible area */}
+      {!isPlanted && (
+        <div
+          className="absolute bottom-6 z-10"
+          style={{
+            left: `calc(50% - ${sidebarOpen ? sidebarWidth / 2 : 0}px)`,
+            transform: "translateX(-50%)",
+            width: "fit-content",
+          }}
+        >
+          <div className="flex gap-4">
+            <button
+              onClick={generateNewFlower}
+              className="bg-white/90 dark:bg-gray-800/90 p-3 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+              aria-label="Generate random flower"
+            >
+              <Shuffle className="h-5 w-5 text-primary" />
+              <span className="text-sm font-medium whitespace-nowrap">Random</span>
+            </button>
 
-                <button
-                  onClick={handlePlantFlower}
-                  className="bg-primary/90 hover:bg-primary text-white p-3 px-4 rounded-full shadow-md transition-colors flex items-center gap-2"
-                  aria-label="Plant this flower in the garden"
-                >
-                  <PlusCircle className="h-5 w-5" />
-                  <span className="text-sm font-medium">Plant Flower</span>
-                </button>
-              </>
-            )}
+            <button
+              onClick={handlePlantFlower}
+              className="bg-primary/90 hover:bg-primary text-white p-3 px-4 rounded-full shadow-md transition-colors flex items-center gap-2"
+              aria-label="Plant this flower in the garden"
+            >
+              <PlusCircle className="h-5 w-5" />
+              <span className="text-sm font-medium whitespace-nowrap">Plant Flower</span>
+            </button>
           </div>
         </div>
+      )}
 
-        <div className="w-full lg:w-1/4 p-4 bg-gray-50 dark:bg-gray-900 h-[calc(100vh-56px)] flex flex-col">
-          <Card className="flex-1 flex flex-col">
-            <CardHeader className="flex-shrink-0">
+      {/* Fixed control panel on the right side */}
+      {!isPlanted && (
+        <div
+          className={`absolute top-0 right-0 h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg border-l border-white/20 dark:border-gray-700/30 overflow-y-auto z-10 transition-all duration-300 ease-in-out ${
+            sidebarOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+          style={{ width: sidebarWidth }}
+        >
+          <div className="h-full flex flex-col">
+            <CardHeader className="pb-2">
               <CardTitle>Flower Generator</CardTitle>
               <CardDescription>Customize your 3D flower</CardDescription>
             </CardHeader>
-            <CardContent className="overflow-y-auto flex-1">
-              <div className="space-y-6">
-                {/* Shape Section */}
-                <div>
-                  <h3 className="text-lg font-medium mb-3">Shape</h3>
+
+            <CardContent className="flex-grow overflow-y-auto">
+              <Tabs defaultValue="shape" value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="shape">Shape</TabsTrigger>
+                  <TabsTrigger value="colors">Colors</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="shape" className="mt-4">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Petal Count: {petalCount}</label>
@@ -253,13 +331,9 @@ export default function Home() {
                       />
                     </div>
                   </div>
-                </div>
+                </TabsContent>
 
-                <div className="border-t my-4"></div>
-
-                {/* Colors Section */}
-                <div>
-                  <h3 className="text-lg font-medium mb-3">Colors</h3>
+                <TabsContent value="colors" className="mt-4">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Petal Color</label>
@@ -276,13 +350,40 @@ export default function Home() {
                       <ColorPicker color={stemColor} onChange={setStemColor} />
                     </div>
                   </div>
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
-          </Card>
+
+            {/* User info section */}
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+              {user && (
+                <div className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-700/50 rounded-md">
+                  <div
+                    className="h-10 w-10 rounded-full flex items-center justify-center text-white font-medium text-lg flex-shrink-0"
+                    style={{ backgroundColor: getUserColor(user.username) }}
+                  >
+                    {getUserInitial(user.username)}
+                  </div>
+                  <div className="flex-grow min-w-0">
+                    <div className="text-sm font-medium truncate">{user.username}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {plantedFlowers.filter((f) => f.username === user.username).length} flowers planted
+                    </div>
+                  </div>
+                  <button
+                    onClick={signOut}
+                    className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    aria-label="Sign out"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </main>
+      )}
+    </div>
   )
 }
 
