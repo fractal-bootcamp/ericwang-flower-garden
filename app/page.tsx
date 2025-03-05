@@ -10,6 +10,7 @@ import { getPlantedFlowers, plantFlower, loadFlowers, type PlantedFlower } from 
 import { Shuffle, PlusCircle, LogOut, Flower, ChevronRight, ChevronLeft } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import dynamic from "next/dynamic"
+import { UserFlowersSidebar } from "@/components/user-flowers-sidebar"
 
 // Dynamically import the FlowerScene component with no SSR
 const DynamicFlowerScene = dynamic(
@@ -45,6 +46,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState("shape")
+  const [showUserFlowersSidebar, setShowUserFlowersSidebar] = useState(false)
 
   // Set isClient to true once component mounts and detect mobile
   useEffect(() => {
@@ -129,8 +131,13 @@ export default function Home() {
       position,
     })
 
-    // Update the local state
-    setPlantedFlowers([...plantedFlowers, newFlower])
+    // Update the local state - use a function to ensure we're working with the latest state
+    setPlantedFlowers((prevFlowers) => {
+      // Check if this flower is already in the array (by ID)
+      const exists = prevFlowers.some((f) => f.id === newFlower.id)
+      if (exists) return prevFlowers
+      return [...prevFlowers, newFlower]
+    })
 
     // Set the focused flower position
     setFocusedFlowerPosition(position)
@@ -138,12 +145,17 @@ export default function Home() {
     // Switch to planted view
     setIsPlanted(true)
 
+    // Make sure the My Flowers sidebar is closed
+    setShowUserFlowersSidebar(false)
+
     // Generate a new flower for next time
     generateNewFlower()
   }
 
   const toggleView = () => {
     setIsPlanted(!isPlanted)
+    // Close the sidebar when switching views
+    setShowUserFlowersSidebar(false)
   }
 
   const toggleSidebar = () => {
@@ -198,6 +210,16 @@ export default function Home() {
         )}
       </div>
 
+      {/* User Flowers Sidebar (only visible in garden view when requested) */}
+      {isPlanted && showUserFlowersSidebar && (
+        <UserFlowersSidebar
+          onClose={() => setShowUserFlowersSidebar(false)}
+          username={user?.username || ""}
+          plantedFlowers={plantedFlowers}
+          setPlantedFlowers={setPlantedFlowers}
+        />
+      )}
+
       {/* View toggle button */}
       <div className="absolute top-4 left-4 z-10">
         <button
@@ -215,6 +237,19 @@ export default function Home() {
           </span>
         </button>
       </div>
+
+      {/* User avatar button in garden view */}
+      {isPlanted && (
+        <div className="absolute top-4 right-4 z-10">
+          <button
+            onClick={() => setShowUserFlowersSidebar(true)}
+            className="h-10 w-10 rounded-full bg-custom-primary text-custom-text shadow-md hover:bg-custom-primary/90 flex items-center justify-center"
+            aria-label="Show my flowers"
+          >
+            {getUserInitial(user?.username || "")}
+          </button>
+        </div>
+      )}
 
       {/* Sidebar toggle button (only visible on mobile and when not in planted view) */}
       {isMobile && !isPlanted && (
@@ -374,26 +409,44 @@ export default function Home() {
             {/* User info section */}
             <div className="p-4 border-t border-custom-secondary/30">
               {user && (
-                <div className="flex items-center gap-3 p-3 bg-custom-input rounded-md">
-                  <div
-                    className="h-10 w-10 rounded-full flex items-center justify-center text-custom-text font-medium text-lg flex-shrink-0"
-                    style={{ backgroundColor: getUserColor(user.username) }}
-                  >
-                    {getUserInitial(user.username)}
+                <div className="relative group">
+                  <div className="flex items-center gap-3 p-3 bg-custom-input rounded-md">
+                    <div
+                      className="h-10 w-10 rounded-full flex items-center justify-center text-custom-text font-medium text-lg flex-shrink-0 cursor-pointer"
+                      style={{ backgroundColor: getUserColor(user.username) }}
+                    >
+                      {getUserInitial(user.username)}
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <div className="text-sm font-medium truncate text-custom-text">{user.username}</div>
+                      <div className="text-xs text-custom-text/70">
+                        {plantedFlowers.filter((f) => f.username === user.username).length} flowers planted
+                      </div>
+                    </div>
+                    <button
+                      onClick={signOut}
+                      className="p-2 rounded-md hover:bg-custom-secondary/30 transition-colors text-custom-text/70"
+                      aria-label="Sign out"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div className="flex-grow min-w-0">
-                    <div className="text-sm font-medium truncate text-custom-text">{user.username}</div>
-                    <div className="text-xs text-custom-text/70">
-                      {plantedFlowers.filter((f) => f.username === user.username).length} flowers planted
+
+                  {/* Dropdown menu */}
+                  <div className="absolute bottom-full left-0 mb-2 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
+                    <div className="bg-custom-dark border border-custom-secondary/30 rounded-md shadow-lg p-2">
+                      <button
+                        onClick={() => {
+                          setIsPlanted(true)
+                          setShowUserFlowersSidebar(true)
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-md hover:bg-custom-secondary/20 text-custom-text flex items-center gap-2"
+                      >
+                        <Flower className="h-4 w-4" />
+                        <span>My Flowers</span>
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={signOut}
-                    className="p-2 rounded-md hover:bg-custom-secondary/30 transition-colors text-custom-text/70"
-                    aria-label="Sign out"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </button>
                 </div>
               )}
             </div>

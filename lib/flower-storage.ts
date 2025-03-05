@@ -12,6 +12,8 @@ export interface PlantedFlower {
   seed: number
   position: [number, number, number] // [x, y, z]
   plantedAt: number // timestamp
+  lastWatered?: number // timestamp
+  waterCount?: number
 }
 
 // In-memory storage for flowers (in a real app, this would be a database)
@@ -68,9 +70,50 @@ export const plantFlower = (flower: Omit<PlantedFlower, "id" | "plantedAt">): Pl
     plantedAt: Date.now(),
   }
 
-  flowers.push(newFlower)
-  saveFlowers()
+  // Check for duplicates before adding
+  const isDuplicate = flowers.some(
+    (f) =>
+      f.username === flower.username &&
+      Math.abs(f.position[0] - position[0]) < 0.1 &&
+      Math.abs(f.position[2] - position[2]) < 0.1 &&
+      Date.now() - f.plantedAt < 1000, // Planted within the last second
+  )
+
+  if (!isDuplicate) {
+    flowers.push(newFlower)
+    saveFlowers()
+  }
+
   return newFlower
+}
+
+// Get flowers for a specific user
+export const getUserFlowers = (username: string): PlantedFlower[] => {
+  return flowers.filter((flower) => flower.username === username)
+}
+
+// Water a flower
+export const waterFlower = (flowerId: string): PlantedFlower | undefined => {
+  const flowerIndex = flowers.findIndex((flower) => flower.id === flowerId)
+  if (flowerIndex === -1) return undefined
+
+  flowers[flowerIndex] = {
+    ...flowers[flowerIndex],
+    lastWatered: Date.now(),
+    waterCount: (flowers[flowerIndex].waterCount || 0) + 1,
+  }
+  saveFlowers()
+  return flowers[flowerIndex]
+}
+
+// Remove a flower
+export const removeFlower = (flowerId: string): boolean => {
+  const flowerIndex = flowers.findIndex((flower) => flower.id === flowerId)
+  if (flowerIndex === -1) return false
+
+  flowers.splice(flowerIndex, 1)
+  saveFlowers()
+  return true
 }
 
 // Initialize by loading flowers only on the client side

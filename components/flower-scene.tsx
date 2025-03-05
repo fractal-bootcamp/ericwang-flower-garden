@@ -25,7 +25,7 @@ interface FieldProps {
 }
 
 // Create a simple grass blade as a vertical rectangular plane
-  function GrassBlade({ position, height = 0.3, color = "#4a1e66" }: { position: [number, number, number], height?: number, color?: string }) {
+function GrassBlade({ position, height = 0.3, color = "#4a1e66" }: { position: [number, number, number], height?: number, color?: string }) {
   // Random rotation around Y axis to vary orientation
   const rotationY = Math.random() * Math.PI * 2
   // Slight random tilt
@@ -310,23 +310,23 @@ function CameraController({
         // When a flower is just planted, position camera to view that specific flower
         const [x, y, z] = focusedFlowerPosition
 
-        // Position the camera at an angle to the flower
-        camera.position.set(x + 5, 5, z + 5)
+        // Position the camera at a wider angle to the flower and higher up
+        camera.position.set(x + 8, 8, z + 8) // Increased distance and height
 
-        // Look at the flower
-        camera.lookAt(x, y + 1, z)
+        // Look at the flower from a more downward angle
+        camera.lookAt(x, y, z)
 
         // Update the orbit controls target
         if (controlsRef.current) {
-          controlsRef.current.target.set(x, y + 1, z)
+          controlsRef.current.target.set(x, y, z)
         }
       } else {
         // Default garden view
-        camera.position.set(5, 5, 5)
-        camera.lookAt(0, 1, 0)
+        camera.position.set(8, 8, 8) // Higher up and further back
+        camera.lookAt(0, 0, 0)
 
         if (controlsRef.current) {
-          controlsRef.current.target.set(0, 1, 0)
+          controlsRef.current.target.set(0, 0, 0)
         }
       }
     } else {
