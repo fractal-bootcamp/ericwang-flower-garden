@@ -61,10 +61,22 @@ function PlantedFlowerWithLabel(props: FlowerProps) {
   const [hovered, setHovered] = useState(false)
   const groupRef = useRef<THREE.Group>(null)
 
+  // Calculate position with adjusted height for tall flowers
+  const position: [number, number, number] = props.position
+    ? [props.position[0], props.position[1], props.position[2]]
+    : [0, 0, 0]
+
+  // If the stem is tall, lower the flower position to keep it from getting too close to the top
+  // Using a more subtle adjustment factor (0.15 instead of 0.3)
+  if (props.stemHeight > 4) {
+    // Only adjust for very tall flowers (> 4)
+    position[1] = -Math.max(0, (props.stemHeight - 4) * 0.15)
+  }
+
   return (
     <group
       ref={groupRef}
-      position={props.position || [0, 0, 0]}
+      position={position}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
@@ -78,6 +90,14 @@ function PlantedFlowerWithLabel(props: FlowerProps) {
       )}
     </group>
   )
+}
+
+// Create a helper function to generate deterministic random numbers based on a seed
+const createRandomGenerator = (seed: number) => {
+  return (min: number, max: number, seedOffset = 0): number => {
+    const x = Math.sin(seed + seedOffset) * 10000
+    return min + (x - Math.floor(x)) * (max - min)
+  }
 }
 
 function Flower({
@@ -95,11 +115,8 @@ function Flower({
   const stemGroup = useRef<THREE.Group>(null)
   const petalGroup = useRef<THREE.Group>(null)
 
-  // Use seed to create deterministic randomness
-  const random = (min: number, max: number, seedOffset = 0) => {
-    const x = Math.sin(seed + seedOffset) * 10000
-    return min + (x - Math.floor(x)) * (max - min)
-  }
+  // Create a memoized random generator based on the seed
+  const random = useMemo(() => createRandomGenerator(seed), [seed])
 
   // Create unique wind parameters for this flower
   const windParams = useMemo(() => {
@@ -109,7 +126,7 @@ function Flower({
       turbulence: random(0.1, 0.3, 27),
       direction: random(0, Math.PI * 2, 99),
     }
-  }, [seed, random]) // Updated dependency
+  }, [random])
 
   // Create petals
   const petals = useMemo(() => {
@@ -131,7 +148,7 @@ function Flower({
       )
     }
     return items
-  }, [petalCount, petalLength, petalWidth, petalColor, seed, random]) // Updated dependency
+  }, [petalCount, petalLength, petalWidth, petalColor, seed, random])
 
   // Animate the flower with wind effect
   useFrame((state) => {
@@ -166,7 +183,7 @@ function Flower({
   })
 
   return (
-    <group position={[0, isPlanted ? 0 : 0, 0]}>
+    <group position={[0, 0, 0]}>
       <group ref={stemGroup}>
         {/* Stem */}
         <mesh position={[0, stemHeight / 2, 0]} rotation={[0, 0, 0]}>
@@ -203,9 +220,11 @@ function Flower({
 function CameraController({
   isPlanted,
   focusedFlowerPosition,
+  stemHeight = 3, // Default stem height
 }: {
   isPlanted: boolean
   focusedFlowerPosition?: [number, number, number] | null
+  stemHeight?: number
 }) {
   const { camera } = useThree()
   const controlsRef = useRef<any>(null)
@@ -236,15 +255,26 @@ function CameraController({
         }
       }
     } else {
-      // When viewing a single flower, position camera to view it directly
-      camera.position.set(0, 3, 6)
-      camera.lookAt(0, 2, 0)
+      // Calculate camera position based on stem height to ensure the entire flower is visible
+      const flowerTotalHeight = stemHeight + 1 // Add 1 for the flower head
+
+      // Position camera from a more downward angle
+      // Increase height and decrease distance for a steeper angle
+      const cameraHeight = Math.max(5, flowerTotalHeight * 1.2)
+      const cameraDistance = Math.max(4, flowerTotalHeight * 1.0)
+
+      // Position camera to center the flower in the visible area with a steeper angle
+      camera.position.set(0, cameraHeight, cameraDistance)
+
+      // Look at a point slightly above the base of the flower
+      const lookAtHeight = stemHeight * 0.3
+      camera.lookAt(0, lookAtHeight, 0)
 
       if (controlsRef.current) {
-        controlsRef.current.target.set(0, 2, 0)
+        controlsRef.current.target.set(0, lookAtHeight, 0)
       }
     }
-  }, [isPlanted, camera, focusedFlowerPosition])
+  }, [isPlanted, camera, focusedFlowerPosition, stemHeight])
 
   return (
     <OrbitControls
@@ -253,7 +283,7 @@ function CameraController({
       enableZoom={true}
       enableRotate={true}
       minDistance={2}
-      maxDistance={isPlanted ? 30 : 15}
+      maxDistance={isPlanted ? 30 : Math.max(15, stemHeight * 3)} // Adjust max distance based on stem height
       minPolarAngle={isPlanted ? 0.1 : 0}
       maxPolarAngle={isPlanted ? Math.PI / 2 - 0.1 : Math.PI}
     />
@@ -263,13 +293,35 @@ function CameraController({
 interface FlowerSceneProps extends FlowerProps {
   plantedFlowers?: PlantedFlower[]
   focusedFlowerPosition?: [number, number, number] | null
+  sidebarVisible?: boolean // Added this property to fix the type error
 }
 
 export function FlowerScene(props: FlowerSceneProps) {
-  const { isPlanted = false, plantedFlowers = [], focusedFlowerPosition = null } = props
+  const {
+    isPlanted = false,
+    plantedFlowers = [],
+    focusedFlowerPosition = null,
+    stemHeight = 3,
+    sidebarVisible = false, // Add default value
+  } = props
+
+  // Calculate the y-position offset based on stem height for the single flower view
+  // Using a more subtle adjustment factor (0.25 instead of 0.5)
+  const singleFlowerYOffset = -Math.max(0.5, stemHeight * 0.25)
 
   return (
-    <Canvas shadows camera={{ position: [0, 3, 6], fov: 50 }} className="bg-gradient-to-b from-blue-100 to-blue-200">
+    <Canvas
+      shadows
+      camera={{ position: [0, 5, 4], fov: 50 }} // Initial camera position with more downward angle
+      className={`bg-gradient-to-b from-blue-100 to-blue-200 ${isPlanted ? "w-full h-full" : "w-full h-full"}`}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+      }}
+    >
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} intensity={1} castShadow />
       <directionalLight
@@ -281,12 +333,17 @@ export function FlowerScene(props: FlowerSceneProps) {
       />
 
       {isPlanted && <Field plantedFlowers={plantedFlowers} />}
-      {!isPlanted && <Flower {...props} />}
+      {!isPlanted && (
+        <group position={[0, singleFlowerYOffset, 0]}>
+          <Flower {...props} />
+        </group>
+      )}
 
       <Environment preset={isPlanted ? "park" : "city"} />
-      <CameraController isPlanted={isPlanted} focusedFlowerPosition={focusedFlowerPosition} />
+      <CameraController isPlanted={isPlanted} focusedFlowerPosition={focusedFlowerPosition} stemHeight={stemHeight} />
     </Canvas>
   )
 }
 
 export default FlowerScene
+
