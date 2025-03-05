@@ -17,7 +17,7 @@ const DynamicFlowerScene = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-blue-100 to-blue-200">
+      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-purple-200 to-purple-300">
         <p className="text-lg font-medium">Loading 3D scene...</p>
       </div>
     ),
@@ -155,19 +155,14 @@ export default function Home() {
     return username.charAt(0).toUpperCase()
   }
 
-  // Function to generate a consistent color based on username
+  // Function to generate a consistent color based on username - now using custom-primary
   const getUserColor = (username: string) => {
-    let hash = 0
-    for (let i = 0; i < username.length; i++) {
-      hash = username.charCodeAt(i) + ((hash << 5) - hash)
-    }
-    const hue = hash % 360
-    return `hsl(${hue}, 70%, 60%)`
+    return "#713A91" // Using color 4 (custom-primary) for user avatar
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-blue-100 to-blue-200 p-4">
+      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-purple-200 to-purple-300 p-4">
         <SignInForm />
       </div>
     )
@@ -208,7 +203,9 @@ export default function Home() {
         <button
           onClick={toggleView}
           className={`px-4 py-2 rounded-full shadow-md transition-colors flex items-center gap-2 ${
-            isPlanted ? "bg-green-600 hover:bg-green-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
+            isPlanted
+              ? "bg-custom-primary hover:bg-custom-primary/90 text-custom-text"
+              : "bg-custom-primary hover:bg-custom-primary/90 text-custom-text"
           }`}
           aria-label="Toggle view"
         >
@@ -224,7 +221,7 @@ export default function Home() {
         <div className="absolute top-4 right-4 z-20">
           <button
             onClick={toggleSidebar}
-            className="p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors"
+            className="p-2 bg-custom-secondary text-custom-text rounded-full shadow-md hover:bg-custom-secondary/90 transition-colors"
             aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
             {sidebarOpen ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
@@ -245,16 +242,16 @@ export default function Home() {
           <div className="flex gap-4">
             <button
               onClick={generateNewFlower}
-              className="bg-white/90 dark:bg-gray-800/90 p-3 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+              className="bg-custom-secondary text-custom-text p-3 rounded-full shadow-md hover:bg-custom-secondary/90 transition-colors flex items-center gap-2"
               aria-label="Generate random flower"
             >
-              <Shuffle className="h-5 w-5 text-primary" />
+              <Shuffle className="h-5 w-5" />
               <span className="text-sm font-medium whitespace-nowrap">Random</span>
             </button>
 
             <button
               onClick={handlePlantFlower}
-              className="bg-primary/90 hover:bg-primary text-white p-3 px-4 rounded-full shadow-md transition-colors flex items-center gap-2"
+              className="bg-custom-primary hover:bg-custom-primary/90 text-custom-text p-3 px-4 rounded-full shadow-md transition-colors flex items-center gap-2"
               aria-label="Plant this flower in the garden"
             >
               <PlusCircle className="h-5 w-5" />
@@ -267,67 +264,87 @@ export default function Home() {
       {/* Fixed control panel on the right side */}
       {!isPlanted && (
         <div
-          className={`absolute top-0 right-0 h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg border-l border-white/20 dark:border-gray-700/30 overflow-y-auto z-10 transition-all duration-300 ease-in-out ${
+          className={`absolute top-0 right-0 h-full bg-custom-dark text-custom-text backdrop-blur-sm shadow-lg border-l border-custom-secondary/30 overflow-y-auto z-10 transition-all duration-300 ease-in-out ${
             sidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
           style={{ width: sidebarWidth }}
         >
           <div className="h-full flex flex-col">
             <CardHeader className="pb-2">
-              <CardTitle>Flower Generator</CardTitle>
-              <CardDescription>Customize your 3D flower</CardDescription>
+              <CardTitle className="text-custom-text">Flower Generator</CardTitle>
+              <CardDescription className="text-custom-text/70">Customize your 3D flower</CardDescription>
             </CardHeader>
 
             <CardContent className="flex-grow overflow-y-auto">
-              <Tabs defaultValue="shape" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="shape">Shape</TabsTrigger>
-                  <TabsTrigger value="colors">Colors</TabsTrigger>
+              <Tabs defaultValue="shape" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-custom-input">
+                  <TabsTrigger
+                    value="shape"
+                    className="data-[state=active]:bg-custom-primary data-[state=active]:text-custom-text text-custom-text/70"
+                  >
+                    Shape
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="colors"
+                    className="data-[state=active]:bg-custom-primary data-[state=active]:text-custom-text text-custom-text/70"
+                  >
+                    Colors
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="shape" className="mt-4">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Petal Count: {petalCount}</label>
+                      <label className="text-sm font-medium text-custom-text">Petal Count: {petalCount}</label>
                       <Slider
                         min={3}
                         max={20}
                         step={1}
                         value={[petalCount]}
                         onValueChange={(value) => setPetalCount(value[0])}
+                        className="[&>[role=slider]]:bg-custom-primary"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Petal Length: {petalLength.toFixed(1)}</label>
+                      <label className="text-sm font-medium text-custom-text">
+                        Petal Length: {petalLength.toFixed(1)}
+                      </label>
                       <Slider
                         min={0.5}
                         max={2}
                         step={0.1}
                         value={[petalLength]}
                         onValueChange={(value) => setPetalLength(value[0])}
+                        className="[&>[role=slider]]:bg-custom-primary"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Petal Width: {petalWidth.toFixed(1)}</label>
+                      <label className="text-sm font-medium text-custom-text">
+                        Petal Width: {petalWidth.toFixed(1)}
+                      </label>
                       <Slider
                         min={0.1}
                         max={1}
                         step={0.1}
                         value={[petalWidth]}
                         onValueChange={(value) => setPetalWidth(value[0])}
+                        className="[&>[role=slider]]:bg-custom-primary"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Stem Height: {stemHeight.toFixed(1)}</label>
+                      <label className="text-sm font-medium text-custom-text">
+                        Stem Height: {stemHeight.toFixed(1)}
+                      </label>
                       <Slider
                         min={1}
                         max={5}
                         step={0.1}
                         value={[stemHeight]}
                         onValueChange={(value) => setStemHeight(value[0])}
+                        className="[&>[role=slider]]:bg-custom-primary"
                       />
                     </div>
                   </div>
@@ -336,17 +353,17 @@ export default function Home() {
                 <TabsContent value="colors" className="mt-4">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Petal Color</label>
+                      <label className="text-sm font-medium text-custom-text">Petal Color</label>
                       <ColorPicker color={petalColor} onChange={setPetalColor} />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Center Color</label>
+                      <label className="text-sm font-medium text-custom-text">Center Color</label>
                       <ColorPicker color={centerColor} onChange={setCenterColor} />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Stem Color</label>
+                      <label className="text-sm font-medium text-custom-text">Stem Color</label>
                       <ColorPicker color={stemColor} onChange={setStemColor} />
                     </div>
                   </div>
@@ -355,24 +372,24 @@ export default function Home() {
             </CardContent>
 
             {/* User info section */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-4 border-t border-custom-secondary/30">
               {user && (
-                <div className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-700/50 rounded-md">
+                <div className="flex items-center gap-3 p-3 bg-custom-input rounded-md">
                   <div
-                    className="h-10 w-10 rounded-full flex items-center justify-center text-white font-medium text-lg flex-shrink-0"
+                    className="h-10 w-10 rounded-full flex items-center justify-center text-custom-text font-medium text-lg flex-shrink-0"
                     style={{ backgroundColor: getUserColor(user.username) }}
                   >
                     {getUserInitial(user.username)}
                   </div>
                   <div className="flex-grow min-w-0">
-                    <div className="text-sm font-medium truncate">{user.username}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-sm font-medium truncate text-custom-text">{user.username}</div>
+                    <div className="text-xs text-custom-text/70">
                       {plantedFlowers.filter((f) => f.username === user.username).length} flowers planted
                     </div>
                   </div>
                   <button
                     onClick={signOut}
-                    className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="p-2 rounded-md hover:bg-custom-secondary/30 transition-colors text-custom-text/70"
                     aria-label="Sign out"
                   >
                     <LogOut className="h-4 w-4" />

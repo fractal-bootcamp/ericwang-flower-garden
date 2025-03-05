@@ -24,14 +24,89 @@ interface FieldProps {
   plantedFlowers: PlantedFlower[]
 }
 
+// Create a simple grass blade as a vertical rectangular plane
+  function GrassBlade({ position, height = 0.3, color = "#4a1e66" }: { position: [number, number, number], height?: number, color?: string }) {
+  // Random rotation around Y axis to vary orientation
+  const rotationY = Math.random() * Math.PI * 2
+  // Slight random tilt
+  const tiltX = (Math.random() - 0.5) * 0.2
+
+  return (
+    <mesh position={position} rotation={[tiltX, rotationY, 0]}>
+      <planeGeometry args={[0.05, height]} />
+      <meshStandardMaterial color={color} side={THREE.DoubleSide} transparent={true} opacity={0.9} />
+    </mesh>
+  )
+}
+
+// Create a simple dandelion
+function Dandelion({ position, stemHeight = 0.4, seedOffset = 0 }: { position: [number, number, number], stemHeight?: number, seedOffset?: number }) {
+  // Use seedOffset to create variation
+  const random = (min: number, max: number) => min + (Math.sin(seedOffset * 100) * 0.5 + 0.5) * (max - min)
+
+  // Slight random tilt
+  const tiltX = (Math.random() - 0.5) * 0.3
+  const tiltZ = (Math.random() - 0.5) * 0.3
+
+  return (
+    <group position={position} rotation={[tiltX, 0, tiltZ]}>
+      {/* Stem */}
+      <mesh position={[0, stemHeight / 2, 0]}>
+        <cylinderGeometry args={[0.01, 0.01, stemHeight, 4]} />
+        <meshStandardMaterial color="#4a1e66" />
+      </mesh>
+
+      {/* Flower head (white/yellow puff) */}
+      <mesh position={[0, stemHeight, 0]}>
+        <sphereGeometry args={[0.08, 8, 8]} />
+        <meshStandardMaterial color="#f0f0e0" roughness={0.8} emissive="#f0f0e0" emissiveIntensity={0.2} />
+      </mesh>
+    </group>
+  )
+}
+
 function Field({ plantedFlowers = [], size = 30 }: FieldProps & { size?: number }) {
+  // Create grass blades and dandelions with memoization
+  const vegetation = useMemo(() => {
+    const items = []
+
+    // Add simple grass blades
+    for (let i = 0; i < 1000; i++) {
+      const x = Math.random() * size - size / 2
+      const z = Math.random() * size - size / 2
+
+      // Vary the grass color slightly
+      const colorVariation = Math.random() * 20 - 10
+      const grassColor = `hsl(270, 60%, ${25 + colorVariation}%)`
+
+      items.push(
+        <GrassBlade key={`grass-${i}`} position={[x, 0.15, z]} height={0.2 + Math.random() * 0.2} color={grassColor} />,
+      )
+    }
+
+    // Add a few dandelions
+    for (let i = 0; i < 30; i++) {
+      const x = Math.random() * size - size / 2
+      const z = Math.random() * size - size / 2
+
+      items.push(
+        <Dandelion key={`dandelion-${i}`} position={[x, 0, z]} stemHeight={0.3 + Math.random() * 0.2} seedOffset={i} />,
+      )
+    }
+
+    return items
+  }, [size])
+
   return (
     <>
-      {/* Ground */}
+      {/* Ground - dark purple color with less reflectivity */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[size, size]} />
-        <meshStandardMaterial color="#5d9e5f" roughness={0.8} />
+        <meshStandardMaterial color="#331a4d" roughness={1.0} metalness={0.0} envMapIntensity={0.2} />
       </mesh>
+
+      {/* Vegetation (grass and dandelions) */}
+      {vegetation}
 
       {/* Add some random flowers in the background */}
       {Array.from({ length: 15 }).map((_, i) => {
@@ -313,7 +388,7 @@ export function FlowerScene(props: FlowerSceneProps) {
     <Canvas
       shadows
       camera={{ position: [0, 5, 4], fov: 50 }} // Initial camera position with more downward angle
-      className={`bg-gradient-to-b from-blue-100 to-blue-200 ${isPlanted ? "w-full h-full" : "w-full h-full"}`}
+      className={`bg-gradient-to-b from-purple-200 to-purple-300 ${isPlanted ? "w-full h-full" : "w-full h-full"}`}
       style={{
         position: "absolute",
         top: 0,
@@ -322,11 +397,11 @@ export function FlowerScene(props: FlowerSceneProps) {
         height: "100%",
       }}
     >
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.35} />
       <pointLight position={[10, 10, 10]} intensity={1} castShadow />
       <directionalLight
         position={[5, 10, 5]}
-        intensity={1}
+        intensity={0.85}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
@@ -339,7 +414,7 @@ export function FlowerScene(props: FlowerSceneProps) {
         </group>
       )}
 
-      <Environment preset={isPlanted ? "park" : "city"} />
+      <Environment preset={"night"} />
       <CameraController isPlanted={isPlanted} focusedFlowerPosition={focusedFlowerPosition} stemHeight={stemHeight} />
     </Canvas>
   )

@@ -7,6 +7,7 @@ module.exports = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
     "./*.{js,ts,jsx,tsx,mdx}",
+    "*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     container: {
@@ -50,6 +51,14 @@ module.exports = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        // Custom theme colors
+        custom: {
+          dark: "#2C2C3B", // Color 1 - Sidebar and sign-in background
+          input: "#3A384D", // Color 2 - Input backgrounds and TabsList
+          secondary: "#45405C", // Color 3 - Secondary buttons
+          primary: "#713A91", // Color 4 - Primary buttons and user avatar
+          text: "#DADAE4", // Color 5 - Text
         },
       },
       borderRadius: {

@@ -33,16 +33,18 @@ export function SignInForm() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto bg-custom-dark text-custom-text border-custom-secondary/30">
       <CardHeader>
-        <CardTitle className="text-2xl">Welcome to Flower Garden</CardTitle>
-        <CardDescription>Enter a username to start creating and planting flowers</CardDescription>
+        <CardTitle className="text-2xl text-custom-text">Welcome to Flower Garden</CardTitle>
+        <CardDescription className="text-custom-text/70">
+          Enter a username to start creating and planting flowers
+        </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent>
           <div className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium">
+              <label htmlFor="username" className="text-sm font-medium text-custom-text">
                 Username
               </label>
               <Input
@@ -50,13 +52,14 @@ export function SignInForm() {
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                className="bg-custom-input border-custom-secondary/30 text-custom-text placeholder:text-custom-text/50"
               />
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {error && <p className="text-sm text-red-400">{error}</p>}
             </div>
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full bg-custom-primary hover:bg-custom-primary/90 text-custom-text">
             Sign In
           </Button>
         </CardFooter>
