@@ -5,18 +5,25 @@ import { Droplet, Trash2, MoreVertical, ChevronRight } from "lucide-react"
 import { waterFlower, removeFlower, type PlantedFlower } from "@/lib/flower-storage"
 import { Button } from "@/components/ui/button"
 import { formatDistanceToNow } from "@/lib/date-utils"
-// import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface UserFlowersSidebarProps {
   username: string
   onClose: () => void
   plantedFlowers: PlantedFlower[]
   setPlantedFlowers: (flowers: PlantedFlower[]) => void
+  onWaterFlower?: (flowerId: string) => void
 }
 
-export function UserFlowersSidebar({ username, onClose, plantedFlowers, setPlantedFlowers }: UserFlowersSidebarProps) {
+export function UserFlowersSidebar({
+  username,
+  onClose,
+  plantedFlowers,
+  setPlantedFlowers,
+  onWaterFlower,
+}: UserFlowersSidebarProps) {
   const [userFlowers, setUserFlowers] = useState<PlantedFlower[]>([])
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [justWateredId, setJustWateredId] = useState<string | null>(null)
 
   // Filter flowers to only show the user's flowers
   useEffect(() => {
@@ -38,9 +45,20 @@ export function UserFlowersSidebar({ username, onClose, plantedFlowers, setPlant
   const handleWaterFlower = (flowerId: string) => {
     const updatedFlower = waterFlower(flowerId)
     if (updatedFlower) {
+      // Set the flower as just watered for animation
+      setJustWateredId(flowerId)
+      setTimeout(() => setJustWateredId(null), 2000)
+
       // Update both the filtered list and the main list
       setUserFlowers((prev) => prev.map((f) => (f.id === flowerId ? updatedFlower : f)))
       setPlantedFlowers(plantedFlowers.map((f) => (f.id === flowerId ? updatedFlower : f)))
+
+      // Notify parent component about the watered flower
+      if (onWaterFlower) {
+        onWaterFlower(flowerId)
+        // Close the sidebar after watering to show the full view of the watered flower
+        setIsCollapsed(true)
+      }
     }
   }
 
@@ -106,7 +124,9 @@ export function UserFlowersSidebar({ username, onClose, plantedFlowers, setPlant
               <div key={flower.id} className="p-4 hover:bg-custom-secondary/10">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-8 h-8 rounded-full flex-shrink-0"
+                    className={`w-8 h-8 rounded-full flex-shrink-0 transition-transform ${
+                      justWateredId === flower.id ? "scale-110 animate-pulse" : ""
+                    }`}
                     style={{
                       background: `radial-gradient(circle, ${flower.centerColor} 30%, ${flower.petalColor} 70%)`,
                     }}

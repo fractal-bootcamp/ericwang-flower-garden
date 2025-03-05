@@ -47,6 +47,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState("shape")
   const [showUserFlowersSidebar, setShowUserFlowersSidebar] = useState(false)
+  const [wateredFlowerId, setWateredFlowerId] = useState<string | null>(null)
 
   // Set isClient to true once component mounts and detect mobile
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function Home() {
   useEffect(() => {
     if (!isPlanted) {
       setFocusedFlowerPosition(null)
+      setWateredFlowerId(null)
     }
   }, [isPlanted])
 
@@ -156,10 +158,17 @@ export default function Home() {
     setIsPlanted(!isPlanted)
     // Close the sidebar when switching views
     setShowUserFlowersSidebar(false)
+    // Clear any watered flower focus
+    setWateredFlowerId(null)
   }
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
+  }
+
+  // Handle watering a flower
+  const handleWaterFlower = (flowerId: string) => {
+    setWateredFlowerId(flowerId)
   }
 
   // Function to get initials from username
@@ -206,6 +215,7 @@ export default function Home() {
             plantedFlowers={plantedFlowers}
             focusedFlowerPosition={focusedFlowerPosition}
             sidebarVisible={!isPlanted && sidebarOpen}
+            wateredFlowerId={wateredFlowerId}
           />
         )}
       </div>
@@ -217,6 +227,7 @@ export default function Home() {
           username={user?.username || ""}
           plantedFlowers={plantedFlowers}
           setPlantedFlowers={setPlantedFlowers}
+          onWaterFlower={handleWaterFlower}
         />
       )}
 
