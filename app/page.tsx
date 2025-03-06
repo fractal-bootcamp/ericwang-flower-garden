@@ -7,7 +7,7 @@ import { ColorPicker } from "@/components/color-picker"
 import { SignInForm } from "@/components/sign-in-form"
 import { useUser } from "@/contexts/user-context"
 import { getPlantedFlowers, plantFlower, loadFlowers, type PlantedFlower } from "@/lib/flower-storage"
-import { Shuffle, PlusCircle, LogOut, Flower, ChevronRight, ChevronLeft } from "lucide-react"
+import { Shuffle, PlusCircle, LogOut, Flower, ChevronRight, ChevronLeft, Pencil } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import dynamic from "next/dynamic"
 import { UserFlowersSidebar } from "@/components/user-flowers-sidebar"
@@ -85,6 +85,13 @@ export default function Home() {
       setWateredFlowerId(null)
     }
   }, [isPlanted])
+
+    useEffect(() => {
+      if (isClient) {
+        // Generate a random flower when the component mounts
+        generateNewFlower()
+      }
+    }, [isClient]) // Only run once when isClient becomes true
 
   const generateNewFlower = () => {
     // Randomize all flower parameters
@@ -235,16 +242,16 @@ export default function Home() {
       <div className="absolute top-4 left-4 z-10">
         <button
           onClick={toggleView}
-          className={`px-4 py-2 rounded-full shadow-md transition-colors flex items-center gap-2 ${
+          className={`px-4 py-3 rounded-full shadow-md transition-colors flex items-center gap-2 ${
             isPlanted
               ? "bg-custom-primary hover:bg-custom-primary/90 text-custom-text"
               : "bg-custom-primary hover:bg-custom-primary/90 text-custom-text"
           }`}
           aria-label="Toggle view"
         >
-          <Flower className="h-5 w-5" />
+          {isPlanted ? <Pencil className="h-5 w-5" /> : <Flower className="h-5 w-5" />}
           <span className="text-sm font-medium whitespace-nowrap">
-            {isPlanted ? "Community Garden" : "Flower Editor"}
+            {isPlanted ? "Flower Editor" : "View Garden"}
           </span>
         </button>
       </div>
@@ -288,7 +295,7 @@ export default function Home() {
           <div className="flex gap-4">
             <button
               onClick={generateNewFlower}
-              className="bg-custom-secondary text-custom-text p-3 rounded-full shadow-md hover:bg-custom-secondary/90 transition-colors flex items-center gap-2"
+              className="bg-custom-secondary text-custom-text py-3 px-4 rounded-full shadow-md hover:bg-custom-secondary/90 transition-colors flex items-center gap-2"
               aria-label="Generate random flower"
             >
               <Shuffle className="h-5 w-5" />
@@ -297,7 +304,7 @@ export default function Home() {
 
             <button
               onClick={handlePlantFlower}
-              className="bg-custom-primary hover:bg-custom-primary/90 text-custom-text p-3 px-4 rounded-full shadow-md transition-colors flex items-center gap-2"
+              className="bg-custom-primary hover:bg-custom-primary/90 text-custom-text py-3 px-4 rounded-full shadow-md transition-colors flex items-center gap-2"
               aria-label="Plant this flower in the garden"
             >
               <PlusCircle className="h-5 w-5" />
@@ -316,105 +323,195 @@ export default function Home() {
           style={{ width: sidebarWidth }}
         >
           <div className="h-full flex flex-col">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-custom-text">Flower Generator</CardTitle>
-              <CardDescription className="text-custom-text/70">Customize your 3D flower</CardDescription>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-custom-text">Flower Garden</CardTitle>
+              <CardDescription className="text-custom-text/70 text-pretty opacity-80">Create a flower and plant it in your garden</CardDescription>
             </CardHeader>
 
             <CardContent className="flex-grow overflow-y-auto">
-              <Tabs defaultValue="shape" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-custom-input">
-                  <TabsTrigger
-                    value="shape"
-                    className="data-[state=active]:bg-custom-primary data-[state=active]:text-custom-text text-custom-text/70"
-                  >
-                    Shape
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="colors"
-                    className="data-[state=active]:bg-custom-primary data-[state=active]:text-custom-text text-custom-text/70"
-                  >
-                    Colors
-                  </TabsTrigger>
-                </TabsList>
+              {isMobile ? (
+                // Mobile view with tabs
+                <Tabs defaultValue="shape" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-custom-input">
+                    <TabsTrigger
+                      value="shape"
+                      className="data-[state=active]:bg-custom-primary data-[state=active]:text-custom-text text-custom-text/70"
+                    >
+                      Shape
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="colors"
+                      className="data-[state=active]:bg-custom-primary data-[state=active]:text-custom-text text-custom-text/70"
+                    >
+                      Colors
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="shape" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-custom-text">Petal Count: {petalCount}</label>
-                      <Slider
-                        min={3}
-                        max={20}
-                        step={1}
-                        value={[petalCount]}
-                        onValueChange={(value) => setPetalCount(value[0])}
-                        className="[&>[role=slider]]:bg-custom-primary"
-                      />
+                  <TabsContent value="shape" className="mt-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">Petal Count: {petalCount}</label>
+                        <Slider
+                          min={3}
+                          max={20}
+                          step={1}
+                          value={[petalCount]}
+                          onValueChange={(value) => setPetalCount(value[0])}
+                          className="[&>[role=slider]]:bg-custom-primary"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">
+                          Petal Length: {petalLength.toFixed(1)}
+                        </label>
+                        <Slider
+                          min={0.5}
+                          max={2}
+                          step={0.1}
+                          value={[petalLength]}
+                          onValueChange={(value) => setPetalLength(value[0])}
+                          className="[&>[role=slider]]:bg-custom-primary"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">
+                          Petal Width: {petalWidth.toFixed(1)}
+                        </label>
+                        <Slider
+                          min={0.1}
+                          max={1}
+                          step={0.1}
+                          value={[petalWidth]}
+                          onValueChange={(value) => setPetalWidth(value[0])}
+                          className="[&>[role=slider]]:bg-custom-primary"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">
+                          Stem Height: {stemHeight.toFixed(1)}
+                        </label>
+                        <Slider
+                          min={1}
+                          max={5}
+                          step={0.1}
+                          value={[stemHeight]}
+                          onValueChange={(value) => setStemHeight(value[0])}
+                          className="[&>[role=slider]]:bg-custom-primary"
+                        />
+                      </div>
                     </div>
+                  </TabsContent>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-custom-text">
-                        Petal Length: {petalLength.toFixed(1)}
-                      </label>
-                      <Slider
-                        min={0.5}
-                        max={2}
-                        step={0.1}
-                        value={[petalLength]}
-                        onValueChange={(value) => setPetalLength(value[0])}
-                        className="[&>[role=slider]]:bg-custom-primary"
-                      />
+                  <TabsContent value="colors" className="mt-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">Petal Color</label>
+                        <ColorPicker color={petalColor} onChange={setPetalColor} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">Center Color</label>
+                        <ColorPicker color={centerColor} onChange={setCenterColor} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">Stem Color</label>
+                        <ColorPicker color={stemColor} onChange={setStemColor} />
+                      </div>
                     </div>
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                // Desktop view with both sections in a single view
+                <div className="space-y-6">
+                  {/* Shape Section */}
+                  <div>
+                    <h3 className="text-lg font-medium text-custom-text mb-4">Shape</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">Petal Count: {petalCount}</label>
+                        <Slider
+                          min={3}
+                          max={20}
+                          step={1}
+                          value={[petalCount]}
+                          onValueChange={(value) => setPetalCount(value[0])}
+                          className="[&>[role=slider]]:bg-custom-primary"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-custom-text">
-                        Petal Width: {petalWidth.toFixed(1)}
-                      </label>
-                      <Slider
-                        min={0.1}
-                        max={1}
-                        step={0.1}
-                        value={[petalWidth]}
-                        onValueChange={(value) => setPetalWidth(value[0])}
-                        className="[&>[role=slider]]:bg-custom-primary"
-                      />
-                    </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">
+                          Petal Length: {petalLength.toFixed(1)}
+                        </label>
+                        <Slider
+                          min={0.5}
+                          max={2}
+                          step={0.1}
+                          value={[petalLength]}
+                          onValueChange={(value) => setPetalLength(value[0])}
+                          className="[&>[role=slider]]:bg-custom-primary"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-custom-text">
-                        Stem Height: {stemHeight.toFixed(1)}
-                      </label>
-                      <Slider
-                        min={1}
-                        max={5}
-                        step={0.1}
-                        value={[stemHeight]}
-                        onValueChange={(value) => setStemHeight(value[0])}
-                        className="[&>[role=slider]]:bg-custom-primary"
-                      />
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">
+                          Petal Width: {petalWidth.toFixed(1)}
+                        </label>
+                        <Slider
+                          min={0.1}
+                          max={1}
+                          step={0.1}
+                          value={[petalWidth]}
+                          onValueChange={(value) => setPetalWidth(value[0])}
+                          className="[&>[role=slider]]:bg-custom-primary"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">
+                          Stem Height: {stemHeight.toFixed(1)}
+                        </label>
+                        <Slider
+                          min={1}
+                          max={5}
+                          step={0.1}
+                          value={[stemHeight]}
+                          onValueChange={(value) => setStemHeight(value[0])}
+                          className="[&>[role=slider]]:bg-custom-primary"
+                        />
+                      </div>
                     </div>
                   </div>
-                </TabsContent>
 
-                <TabsContent value="colors" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-custom-text">Petal Color</label>
-                      <ColorPicker color={petalColor} onChange={setPetalColor} />
-                    </div>
+                  {/* Separator */}
+                  <div className="border-t border-custom-secondary/30 my-4"></div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-custom-text">Center Color</label>
-                      <ColorPicker color={centerColor} onChange={setCenterColor} />
-                    </div>
+                  {/* Colors Section */}
+                  <div>
+                    <h3 className="text-lg font-medium text-custom-text mb-4">Colors</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">Petal Color</label>
+                        <ColorPicker color={petalColor} onChange={setPetalColor} />
+                      </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-custom-text">Stem Color</label>
-                      <ColorPicker color={stemColor} onChange={setStemColor} />
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">Center Color</label>
+                        <ColorPicker color={centerColor} onChange={setCenterColor} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-custom-text">Stem Color</label>
+                        <ColorPicker color={stemColor} onChange={setStemColor} />
+                      </div>
                     </div>
                   </div>
-                </TabsContent>
-              </Tabs>
+                </div>
+              )}
             </CardContent>
 
             {/* User info section */}
