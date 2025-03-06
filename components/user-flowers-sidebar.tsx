@@ -155,15 +155,15 @@ export function UserFlowersSidebar({
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-custom-secondary/20 text-left"
                         onClick={() => handleWaterFlower(flower.id)}
                       >
-                        <Droplet className="h-4 w-4 text-blue-400" />
-                        <span>Water Flower</span>
+                        <Droplet className="h-4 w-4" />
+                        <span>Water flower</span>
                       </button>
                       <button
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-custom-secondary/20 text-left text-red-400"
                         onClick={() => handleRemoveFlower(flower.id)}
                       >
                         <Trash2 className="h-4 w-4" />
-                        <span>Remove Flower</span>
+                        <span>Delete</span>
                       </button>
                     </div>
                   </div>

@@ -258,7 +258,9 @@ function Flower({
       // Add some randomness to petal shape
       const length = petalLength * (0.9 + random(0, 0.2, petalSeed))
       const width = petalWidth * (0.9 + random(0, 0.2, petalSeed + 0.1))
-      const bend = random(0.1, 0.3, petalSeed + 0.2)
+      const baseBend = random(0.1, 0.3, petalSeed + 0.2)
+      const bendVariance = random(-0.1, 0.1, petalSeed + i * 0.5)
+      const bend = Math.max(0.05, baseBend + bendVariance)
 
       items.push(
         <mesh key={i} position={[0, 0, 0]} rotation={[Math.PI / 2 - bend, 0, angle]}>
@@ -463,7 +465,7 @@ export function FlowerScene(props: FlowerSceneProps) {
       }}
     >
       <ambientLight intensity={ambientLightIntensity} />
-      <pointLight position={[10, 10, 10]} intensity={1} castShadow />
+      {/* <pointLight position={[10, 10, 10]} intensity={1} castShadow /> */}
       <directionalLight
         position={[5, 10, 5]}
         intensity={directionalLightIntensity}
@@ -478,7 +480,6 @@ export function FlowerScene(props: FlowerSceneProps) {
           <Flower {...props} />
         </group>
       )}
-
       <Environment preset={"night"} />
       <CameraController
         isPlanted={isPlanted}

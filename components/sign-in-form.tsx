@@ -2,16 +2,58 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUser } from "@/contexts/user-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
+// List of animals to use for username generation
+const animals = [
+  "capybara",
+  "axolotl",
+  "narwhal",
+  "quokka",
+  "platypus",
+  "pangolin",
+  "tapir",
+  "okapi",
+  "lemur",
+  "sloth",
+  "ocelot",
+  "wombat",
+  "numbat",
+  "echidna",
+  "manatee",
+  "meerkat",
+  "fennec",
+  "caracal",
+  "binturong",
+  "kinkajou",
+  "aardvark",
+  "tardigrade",
+  "blobfish",
+  "panda",
+]
+
+// Function to generate a random username
+const generateUsername = (): string => {
+  // Pick a random animal from the list
+  const animal = animals[Math.floor(Math.random() * animals.length)]
+
+  // Create username in the format "anonymous-[animal]"
+  return `anonymous-${animal}`
+}
+
 export function SignInForm() {
   const [username, setUsername] = useState("")
   const [error, setError] = useState("")
   const { signIn } = useUser()
+
+  // Generate a random username when the component mounts
+  useEffect(() => {
+    setUsername(generateUsername())
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
